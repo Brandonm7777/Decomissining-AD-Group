@@ -1,0 +1,20 @@
+param (   
+    [Parameter(Mandatory, Position=0)]
+    [string]$adgroup,
+    [int]$daystilldelete=5   
+)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+Import-Module ActiveDirectory
+
+if (Get-ADGroup -Filter {Name -eq $adgroup}) {
+#creates scheduled task to delete adgroup in 5 days
+$taskStartTime = (Get-Date).AddDays($daystilldelete)
+$trigger = New-ScheduledTaskTrigger -Once -At $taskStartTime
+$action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-File C:\temp\PSScripts\ADGroupDecommissionScript\delete-adgroup.ps1 $adgroup"
+Register-ScheduledTask -TaskName "Delete ADGroup - $adgroup" -Trigger $trigger -Action $action -RunLevel Highest -Force -Description "Deletes group $adgroup after $daystilldelete days"
+
+Write-Output "`nScheduled Task created, $adgroup to be deleted after $daystilldelete days."
+
+}else {
+   Write-Output "`nGroup '$adgroup' not found in Active Directory."
+}
