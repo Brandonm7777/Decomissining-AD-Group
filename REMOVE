@@ -1,0 +1,28 @@
+param (   
+    [Parameter(Mandatory, Position=0)]
+    [string]$adgroup   
+)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+Import-Module ActiveDirectory
+
+if (Get-ADGroup -Filter {Name -eq $adgroup}) {
+$group = Get-ADGroup -Identity $adgroup -Properties DistinguishedName, Members, MemberOf, ManagedBy
+
+#Remove all users from the Members property
+if ($group.Members) {
+    $group.Members | ForEach-Object {Remove-ADGroupMember -Identity $group.DistinguishedName -Members $_ -Confirm:$false}
+    }
+# Remove all users from the MemberOf property
+if ($group.MemberOf) {
+    $group.MemberOf | ForEach-Object {Remove-ADGroupMember -Identity $_ -Members $group.DistinguishedName -Confirm:$false}
+    }
+# Remove all users from the MemberOf property
+if ($group.ManagedBy) {
+    Set-ADGroup -Identity $group.DistinguishedName -ManagedBy $null
+    }
+
+Write-Output "`nGroup Members, MemberOf, and ManagedBy removed."
+
+}else {
+   Write-Output "`nGroup '$adgroup' not found in Active Directory."
+}
