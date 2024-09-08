@@ -1,0 +1,16 @@
+param (   
+    [Parameter(Mandatory, Position=0)]
+    [string]$adgroup   
+)
+
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+Import-Module ActiveDirectory
+
+#delete the adgroup
+if (Get-ADGroup -Filter {Name -eq $adgroup}) {
+Remove-ADGroup -Identity $adgroup -Confirm:$false
+
+Unregister-ScheduledTask -TaskName "Delete ADGroup - $adgroup" -Confirm:$false
+}else {
+   Write-Output "`nGroup '$adgroup' not found in Active Directory."
+}
