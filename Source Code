@@ -1,0 +1,32 @@
+#Run this script first
+
+param (   
+    [Parameter(Mandatory, Position=0)]
+    [string]$adgroup,
+    [int]$daystilldelete=5
+)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+Import-Module ActiveDirectory
+#ensures if anyone passes a param for days until deletion remains within 6 days windo (assuming adm was checked in/out before starting adm will have 6days 23hours etc time remaining before expiring hence 6 day limit)
+if($daystilldelete -gt 6){$daystilldelete = 6}
+
+if (Get-ADGroup -Filter {Name -eq $adgroup}) {
+   # Prompt for confirmation
+   $confirm = Read-Host "Are you sure you want to delete the group '$adgroup'? (Y/N)"
+   if ($confirm -eq "Y" -or $confirm -eq "y") {       
+       Write-Output "`nYOUR GROUP '$adgroup' WILL BE DELETED IN: $daystilldelete Days"
+
+       #export the existing adgroup info
+       C:\temp\PSScripts\ADGroupDecommissionScript\export-adgroup.ps1 -adgroup $adgroup
+       #remove members, memberof, and managedby
+       C:\temp\PSScripts\ADGroupDecommissionScript\remove-adgroupmembers.ps1 -adgroup $adgroup
+       #schedule deletion of empty group
+       C:\temp\PSScripts\ADGroupDecommissionScript\create-scheduletaskfordeletion.ps1 -adgroup $adgroup -daystilldelete $daystilldelete
+   }
+   else {
+       Write-Output "`nDeletion of group '$adgroup' cancelled."
+   }
+
+} else {
+   Write-Output "`nGroup '$adgroup' not found in Active Directory."
+}
